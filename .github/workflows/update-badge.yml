@@ -1,48 +1,19 @@
-name: Update TryHackMe Badge
+name: TryHackMe Update Badge
 
 on:
   schedule:
-    - cron: '0 0 * * *' # Runs daily at midnight UTC
+    # Make it run every 24 hour
+    - cron: '0 0 * * *'
   workflow_dispatch:
-
-permissions:
-  contents: write  # ✅ Allow pushing changes
-
 jobs:
-  update-badge:
+  tryhackme-badge-update:
+    name: Update this repo's tryhackme badge with the latest tryhackme image badge
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v2
+      - uses: p4p1/tryhackme-badge-workflow@main
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}  # ✅ Use GITHUB_TOKEN for push
-
-      - name: Download TryHackMe badge
-        run: |
-          curl -s -o tryhackme_badge.png "https://tryhackme-badges.s3.amazonaws.com/rossplennon.png"
-
-      - name: Update README using awk
-        run: |
-          awk '
-            /<!-- TRYHACKME BADGE START -->/ {
-              print "<!-- TRYHACKME BADGE START -->"
-              print "!TryHackMe Badge"
-              skip=1
-              next
-            }
-            /<!-- TRYHACKME BADGE END -->/ {
-              print "<!-- TRYHACKME BADGE END -->"
-              skip=0
-              next
-            }
-            !skip
-          ' README.md > tmp && mv tmp README.md
-
-      - name: Commit and push changes
-        run: |
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git add README.md tryhackme_badge.png
-          git commit -m "Update TryHackMe badge"
-          git push
+          # Replace with your tryhackme username
+          username: "rossplennon"
+          GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}} # Do not paste your github token here - this is a placeholder
+                                                  # and will pull your github token automatically
