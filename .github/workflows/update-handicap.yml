@@ -17,27 +17,57 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Install dependencies
-        run: sudo apt-get update && sudo apt-get install -y jq curl
+      
+      - name: Install tools
+        run: sudo apt-get update && sudo apt-get install -y curl jq
 
-      - name: Login and fetch handicap
+      - name: Login to HowDidiDo and fetch handicap
         run: |
-          # Login to HowDidiDo and store session cookie
-          curl -c cookies.txt -s -X POST \
+          set -e
+
+          # --- Login (NOTE: form fields may differ; adjust if HowDidiDo uses CSRF or different names) ---
+          curl -s -c cookies.txt -X POST \
+            -H "Content-Type: application/x-www-form-urlencoded" \
             -d "username=${{ secrets.rosslennon95@gmail.com }}&password=${{ secrets.Nicole281214! }}" \
             https://www.howdidido.com/Login
 
-          # Fetch profile page using session cookie
-          PROFILE_URL="https://www.howdidido.com/profile/${{ secrets.HDID_USERNAME }}"
-          HANDICAP=$(curl -b cookies.txt -s "$PROFILE_URL" | grep -oP '(?<=Handicap: )\d+(\.\d+)?' || echo "N/A")
+          # --- Fetch profile page using cookie ---
+          PROFILE_URL="https://www.howdidido.com/profile/${{ secrets.rosslennon95@gmail.com }}"
+          PAGE=$(curl -s -b cookies.txt "$PROFILE_URL" || true)
 
+          # --- Extract handicap; adjust regex to match your profile’s markup ---
+          HANDICAP=$(printf "%s" "$PAGE" | grep -Eo 'Handicap[: ]+[0-9]+(\.[0-9]+)?' | grep -Eo '[0-9]+(\.[0-9]+)?' | head -n1)
+
+          if [ -z "$HANDICAP" ]; then
+            echo "Could not parse handicap from profile page. Setting HANDICAP=N/A"
+            HANDICAP="N/A"
+          fi
           echo "HANDICAP=$HANDICAP" >> $GITHUB_ENV
+          echo "Scraped handicap: $HANDICAP"
 
       - name: Update README badge
         run: |
-          sed -i "s/Handicap-[0-9\.]\+-green/Handicap-${HANDICAP}-green/" README.md
-          git add README.md
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git commit -m "Update handicap badge to $HANDICAP"
-          git push origin $(git branch --show-current)
+          set -e
+          # Expect a badge like:
+          # !Handicap
+          #
+          # Replace the numeric value (or N/A) in README.
+          if [ "${HANDICAP}" = "N/A" ]; then
+            NEW_BADGE="https://img.shields.io/badge/Handicap-N%2FA-lightgrey?style=for-the-badge"
+          else
+            NEW_BADGE="https://img.shields.io/badge/Handicap-${HANDICAP}-green?style=for-the-badge"
+          fi
+
+          # Replace the entire badge URL in README (safe replacement)
+          perl -0777 -pe "s|https://img.shields.io/badge/Handicap-[^\\)]*|${NEW_BADGE}|g" -i README.md
+
+          # Commit only if README changed
+          if ! git diff --quiet -- README.md; then
+            git add README.md
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git commit -m "Update handicap badge to ${HANDICAP}"
+            git push
+          else
+            echo "README unchanged; skipping commit."
+          fi
