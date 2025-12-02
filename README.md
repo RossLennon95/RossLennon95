@@ -1,7 +1,3 @@
-
-## My Golf Handicap
-!Handicap
-
 ### Hello there 👋
 
 #### This is my journey in becoming a Cyber Security Analyst
