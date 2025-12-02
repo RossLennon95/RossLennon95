@@ -17,7 +17,6 @@ jobs:
         with:
           fetch-depth: 0
 
-      
       - name: Install tools
         run: sudo apt-get update && sudo apt-get install -y curl jq
 
@@ -28,11 +27,11 @@ jobs:
           # --- Login (NOTE: form fields may differ; adjust if HowDidiDo uses CSRF or different names) ---
           curl -s -c cookies.txt -X POST \
             -H "Content-Type: application/x-www-form-urlencoded" \
-            -d "username=${{ secrets.rosslennon95@gmail.com }}&password=${{ secrets.Nicole281214! }}" \
+            -d "username=${{ secrets.HDID_USERNAME }}&password=${{ secrets.HDID_PASSWORD }}" \
             https://www.howdidido.com/Login
 
           # --- Fetch profile page using cookie ---
-          PROFILE_URL="https://www.howdidido.com/profile/${{ secrets.rosslennon95@gmail.com }}"
+          PROFILE_URL="https://www.howdidido.com/profile/${{ secrets.HDID_USERNAME }}"
           PAGE=$(curl -s -b cookies.txt "$PROFILE_URL" || true)
 
           # --- Extract handicap; adjust regex to match your profile’s markup ---
