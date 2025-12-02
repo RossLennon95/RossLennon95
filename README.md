@@ -7,6 +7,5 @@ Looking for my next role but can be found at <a href="https://www.linkedin.com/i
 <img src="https://tryhackme-badges.s3.amazonaws.com/rossplennon.png" alt="rossplennon's Image Badge" />
 
 ## My Golf Handicap
-Current Handicap: Not Available (Scrape failed)
-Last updated: 2025-12-02
+Current Handicap: 20.4
 
