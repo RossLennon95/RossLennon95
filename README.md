@@ -5,6 +5,7 @@
 Looking for my next role but can be found at <a href="https://www.linkedin.com/in/ross-lennon/" target="_blank">Ross Lennon</a>
 
 <!-- TRYHACKME BADGE START -->
+!TryHackMe Badge
 <!-- TRYHACKME BADGE END -->
 
 ## My Golf Handicap
