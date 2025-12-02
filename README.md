@@ -6,4 +6,4 @@ Looking for my next role but can be found at <a href="https://www.linkedin.com/i
 
 <img src="https://tryhackme-badges.s3.amazonaws.com/rossplennon.png" alt="rossplennon's Image Badge" />
 
-- 🏌️‍♂️ When I'm not learning I love golf and have a current handicap 20.4
+- 🏌️‍♂️ When I'm not learning I love golf and have a current handicap !Handicap
