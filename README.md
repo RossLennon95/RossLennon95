@@ -4,7 +4,8 @@
 
 Looking for my next role but can be found at <a href="https://www.linkedin.com/in/ross-lennon/" target="_blank">Ross Lennon</a>
 
-<img src="https://tryhackme-badges.s3.amazonaws.com/rossplennon.png" alt="rossplennon's Image Badge" />
+<!-- TRYHACKME BADGE START -->
+<!-- TRYHACKME BADGE END -->
 
 ## My Golf Handicap
 Current Handicap: 20.4
