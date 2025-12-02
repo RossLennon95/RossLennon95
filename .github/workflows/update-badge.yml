@@ -22,7 +22,8 @@ jobs:
           awk '
             /<!-- TRYHACKME BADGE START -->/ {
               print "<!-- TRYHACKME BADGE START -->"
-              print "![TryHackMe Badge](try          skip=1
+              print "![ryHackMe Badge"
+              skip=1
               next
             }
             /<!-- TRYHACKME BADGE END -->/ {
