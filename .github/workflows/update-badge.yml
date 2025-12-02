@@ -1,4 +1,3 @@
-
 name: Update TryHackMe Badge
 
 on:
@@ -22,7 +21,7 @@ jobs:
         run: |
           sed -i '/<!-- TRYHACKME BADGE START -->/,/<!-- TRYHACKME BADGE END -->/c\
 <!-- TRYHACKME BADGE START -->\
-![TryHackMe Badge
+![ryHackMe Badge\
 <!-- TRYHACKME BADGE END -->' README.md
 
       - name: Commit and push changes
