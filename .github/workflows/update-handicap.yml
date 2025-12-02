@@ -102,8 +102,8 @@ jobs:
           name: howdidido-profile
           path: profile.html
 
-      - name: Get current date
-        run: echo "DATE=$(date +'%Y-%m-%d')" >> $GITHUB_ENV
+      - name: Get current date and time
+        run: echo "DATETIME=$(date +'%d-%m-%Y %H:%M:%S UTC')" >> $GITHUB_ENV
 
       - name: Update README with text and timestamp
         run: |
@@ -120,9 +120,9 @@ jobs:
           fi
 
           if grep -q 'Last updated:' README.md; then
-            perl -0777 -pe "s|Last updated: [^\\n]*|Last updated: ${DATE}|g" -i README.md
+            perl -0777 -pe "s|Last updated: [^\\n]*|Last updated: ${DATETIME}|g" -i README.md
           else
-            echo -e "Last updated: ${DATE}\n" >> README.md
+            echo -e "Last updated: ${DATETIME}\n" >> README.md
           fi
 
           echo "----- README preview -----"
@@ -134,7 +134,7 @@ jobs:
             git add README.md
             git config user.name "github-actions[bot]"
             git config user.email "github-actions[bot]@users.noreply.github.com"
-            git commit -m "Update handicap (${HANDICAP}) and timestamp (${DATE})"
+            git commit -m "Update handicap (${HANDICAP}) and timestamp (${DATETIME})"
             git pull --rebase || true
             git push
           else
