@@ -1,5 +1,5 @@
 
-name: Update Handicap Text
+name: Update Handicap Text (Puppeteer)
 
 on:
   schedule:
@@ -19,58 +19,79 @@ jobs:
           fetch-depth: 0
           persist-credentials: true
 
-      - name: Install tools
-        run: sudo apt-get update && sudo apt-get install -y curl
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
 
-      - name: Login and fetch handicap
+      - name: Install Puppeteer
+        run: npm install puppeteer
+
+      - name: Scrape handicap using Puppeteer
         run: |
-          set -e
-          # Login to HowDidiDo (adjust if login isn't required)
-          curl -s -c cookies.txt -X POST \
-            -H "Content-Type: application/x-www-form-urlencoded" \
-            -d "username=${{ secrets.HDID_USERNAME }}&password=${{ secrets.HDID_PASSWORD }}" \
-            https://www.howdidido.com/Login || true
+          node <<'EOF'
+          const puppeteer = require('puppeteer');
 
-          PROFILE_URL="https://www.howdidido.com/profile/${{ secrets.HDID_USERNAME }}"
-          PAGE=$(curl -s -b cookies.txt "$PROFILE_URL" || true)
+          (async () => {
+            const username = process.env.HDID_USERNAME;
+            const password = process.env.HDID_PASSWORD;
+            const profileUrl = `https://www.howdidido.com/profile/${username}`;
 
-          # Extract handicap (adjust regex if needed)
-          HANDICAP=$(printf "%s" "$PAGE" \
-            | grep -Eo 'Handicap[: ]+[0-9]+(\.[0-9]+)?' \
-            | grep -Eo '[0-9]+(\.[0-9]+)?' \
-            | head -n1)
+            const browser = await puppeteer.launch({ headless: true });
+            const page = await browser.newPage();
 
-          if [ -z "$HANDICAP" ]; then
-            HANDICAP="N/A"
-          fi
+            // Go to login page
+            await page.goto('https://www.howdidido.com/Login', { waitUntil: 'networkidle2' });
 
-          echo "HANDICAP=$HANDICAP" >> $GITHUB_ENV
-          echo "Scraped handicap: $HANDICAP"
+            // Fill login form
+            await page.type('input[name="username"]', username);
+            await page.type('input[name="password"]', password);
+            await page.click('button[type="submit"]');
+
+            // Wait for navigation after login
+            await page.waitForNavigation({ waitUntil: 'networkidle2' });
+
+            // Go to profile page
+            await page.goto(profileUrl, { waitUntil: 'networkidle2' });
+
+            // Extract handicap text
+            let handicap = await page.evaluate(() => {
+              const el = document.querySelector('.handicap-value, .handicap'); // Adjust selector if needed
+              return el ? el.textContent.trim() : null;
+            });
+
+            if (!handicap) handicap = 'N/A';
+
+            console.log(`Scraped handicap: ${handicap}`);
+
+            // Write to env file for next steps
+            const fs = require('fs');
+            fs.appendFileSync(process.env.GITHUB_ENV, `HANDICAP=${handicap}\n`);
+
+            await browser.close();
+          })();
+          EOF
+        env:
+          HDID_USERNAME: ${{ secrets.HDID_USERNAME }}
+          HDID_PASSWORD: ${{ secrets.HDID_PASSWORD }}
 
       - name: Get current date
-        run: |
-          DATE=$(date +"%Y-%m-%d")
-          echo "DATE=$DATE" >> $GITHUB_ENV
-          echo "Current date: $DATE"
+        run: echo "DATE=$(date +'%Y-%m-%d')" >> $GITHUB_ENV
 
       - name: Update README with text and timestamp
         run: |
-          set -e
-          # Prepare fallback message if handicap is N/A
           if [ "${HANDICAP}" = "N/A" ]; then
             DISPLAY_TEXT="Current Handicap: Not Available (Scrape failed)"
           else
             DISPLAY_TEXT="Current Handicap: ${HANDICAP}"
           fi
 
-          # If README contains handicap text, update it
           if grep -q 'Current Handicap:' README.md; then
             perl -0777 -pe "s|Current Handicap: [^\\n]*|${DISPLAY_TEXT}|g" -i README.md
           else
             echo -e "\n## My Golf Handicap\n${DISPLAY_TEXT}\n" >> README.md
           fi
 
-          # Add or update Last updated line
           if grep -q 'Last updated:' README.md; then
             perl -0777 -pe "s|Last updated: [^\\n]*|Last updated: ${DATE}|g" -i README.md
           else
