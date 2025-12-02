@@ -47,15 +47,34 @@ jobs:
           echo "HANDICAP=$HANDICAP" >> $GITHUB_ENV
           echo "Scraped handicap: $HANDICAP"
 
-      - name: Update README with text
+      - name: Get current date
+        run: |
+          DATE=$(date +"%Y-%m-%d")
+          echo "DATE=$DATE" >> $GITHUB_ENV
+          echo "Current date: $DATE"
+
+      - name: Update README with text and timestamp
         run: |
           set -e
-          # If README contains a badge or old text, replace it
-          if grep -q 'Handicap' README.md; then
-            perl -0777 -pe "s|Current Handicap: [^\\n]*|Current Handicap: ${HANDICAP}|g" -i README.md
-            perl -0777 -pe "s|img.shields.io/badge/Handicap-[^\\)]*|Current Handicap: ${HANDICAP}|g" -i README.md
+          # Prepare fallback message if handicap is N/A
+          if [ "${HANDICAP}" = "N/A" ]; then
+            DISPLAY_TEXT="Current Handicap: Not Available (Scrape failed)"
           else
-            echo -e "\n## My Golf Handicap\nCurrent Handicap: ${HANDICAP}\n" >> README.md
+            DISPLAY_TEXT="Current Handicap: ${HANDICAP}"
+          fi
+
+          # If README contains handicap text, update it
+          if grep -q 'Current Handicap:' README.md; then
+            perl -0777 -pe "s|Current Handicap: [^\\n]*|${DISPLAY_TEXT}|g" -i README.md
+          else
+            echo -e "\n## My Golf Handicap\n${DISPLAY_TEXT}\n" >> README.md
+          fi
+
+          # Add or update Last updated line
+          if grep -q 'Last updated:' README.md; then
+            perl -0777 -pe "s|Last updated: [^\\n]*|Last updated: ${DATE}|g" -i README.md
+          else
+            echo -e "Last updated: ${DATE}\n" >> README.md
           fi
 
           echo "----- README preview -----"
@@ -67,7 +86,7 @@ jobs:
             git add README.md
             git config user.name "github-actions[bot]"
             git config user.email "github-actions[bot]@users.noreply.github.com"
-            git commit -m "Update handicap text to ${HANDICAP}"
+            git commit -m "Update handicap (${HANDICAP}) and timestamp (${DATE})"
             git pull --rebase || true
             git push
           else
