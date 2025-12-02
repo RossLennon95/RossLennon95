@@ -17,12 +17,21 @@ jobs:
         run: |
           curl -s -o tryhackme_badge.png "https://tryhackme-badges.s3.amazonaws.com/rossplennon.png"
 
-      - name: Update README
+      - name: Update README using awk
         run: |
-          sed -i '/<!-- TRYHACKME BADGE START -->/,/<!-- TRYHACKME BADGE END -->/c\
-<!-- TRYHACKME BADGE START -->\
-![ryHackMe Badge\
-<!-- TRYHACKME BADGE END -->' README.md
+          awk '
+            /<!-- TRYHACKME BADGE START -->/ {
+              print "<!-- TRYHACKME BADGE START -->"
+              print "![TryHackMe Badge](try          skip=1
+              next
+            }
+            /<!-- TRYHACKME BADGE END -->/ {
+              print "<!-- TRYHACKME BADGE END -->"
+              skip=0
+              next
+            }
+            !skip
+          ' README.md > tmp && mv tmp README.md
 
       - name: Commit and push changes
         run: |
