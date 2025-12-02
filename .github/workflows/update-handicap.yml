@@ -1,0 +1,43 @@
+name: Update Handicap Badge
+
+on:
+  schedule:
+    - cron: '0 0 * * *' # Runs daily at midnight UTC
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  update-handicap:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install dependencies
+        run: sudo apt-get update && sudo apt-get install -y jq curl
+
+      - name: Login and fetch handicap
+        run: |
+          # Login to HowDidiDo and store session cookie
+          curl -c cookies.txt -s -X POST \
+            -d "username=${{ secrets.rosslennon95@gmail.com }}&password=${{ secrets.Nicole281214! }}" \
+            https://www.howdidido.com/Login
+
+          # Fetch profile page using session cookie
+          PROFILE_URL="https://www.howdidido.com/profile/${{ secrets.HDID_USERNAME }}"
+          HANDICAP=$(curl -b cookies.txt -s "$PROFILE_URL" | grep -oP '(?<=Handicap: )\d+(\.\d+)?' || echo "N/A")
+
+          echo "HANDICAP=$HANDICAP" >> $GITHUB_ENV
+
+      - name: Update README badge
+        run: |
+          sed -i "s/Handicap-[0-9\.]\+-green/Handicap-${HANDICAP}-green/" README.md
+          git add README.md
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git commit -m "Update handicap badge to $HANDICAP"
+          git push origin $(git branch --show-current)
