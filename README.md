@@ -3,10 +3,7 @@
 #### This is my journey in becoming a Cyber Security Analyst
 
 ## TryHackMe
-git add README.md
-git commit -m "Add TryHackMe badge to README"
-git push origin rossplennon
-
+<img src="https://tryhackme-badges.s3.amazonaws.com/rossplennon.png" alt="rossplennon's Image Badge" />
 
 Looking for my next role but can be found at <a href="https://www.linkedin.com/in/ross-lennon/" target="_blank">Ross Lennon</a>
 
