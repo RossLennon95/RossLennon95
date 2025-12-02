@@ -1,8 +1,8 @@
-name: Update Handicap Badge
 
+name: Update Handicap Badge
 on:
   schedule:
-    - cron: '0 0 * * *' # Runs daily at midnight UTC
+    - cron: '0 0 * * *'   # daily at 00:00 UTC (must be on default branch)
   workflow_dispatch:
 
 permissions:
@@ -16,57 +16,84 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          persist-credentials: true
+
+      - name: Show initial repo state
+        run: |
+          echo "Default branch context:"
+          echo "GITHUB_REF=$GITHUB_REF"
+          echo "Current branch: $(git branch --show-current || echo 'detached')"
+          ls -la
+          test -f README.md && echo "README.md found ✅" || (echo "README.md missing ❌" && exit 1)
 
       - name: Install tools
-        run: sudo apt-get update && sudo apt-get install -y curl jq
+        run: sudo apt-get update && sudo apt-get install -y curl
 
       - name: Login to HowDidiDo and fetch handicap
         run: |
           set -e
-
-          # --- Login (NOTE: form fields may differ; adjust if HowDidiDo uses CSRF or different names) ---
+          # Adjust login endpoint/fields if needed. If login isn't required, skip this login block.
           curl -s -c cookies.txt -X POST \
             -H "Content-Type: application/x-www-form-urlencoded" \
             -d "username=${{ secrets.HDID_USERNAME }}&password=${{ secrets.HDID_PASSWORD }}" \
-            https://www.howdidido.com/Login
+            https://www.howdidido.com/Login || true
 
-          # --- Fetch profile page using cookie ---
           PROFILE_URL="https://www.howdidido.com/profile/${{ secrets.HDID_USERNAME }}"
-          PAGE=$(curl -s -b cookies.txt "$PROFILE_URL" || true)
+          PAGE="$(curl -s -b cookies.txt "$PROFILE_URL" || true)"
 
-          # --- Extract handicap; adjust regex to match your profile’s markup ---
-          HANDICAP=$(printf "%s" "$PAGE" | grep -Eo 'Handicap[: ]+[0-9]+(\.[0-9]+)?' | grep -Eo '[0-9]+(\.[0-9]+)?' | head -n1)
+          # Try several patterns; site markup varies. Tweak if your profile differs.
+          HANDICAP="$(printf '%s' "$PAGE" \
+            | grep -Eo 'Handicap[: ]+[0-9]+(\.[0-9]+)?' \
+            | grep -Eo '[0-9]+(\.[0-9]+)?' \
+            | head -n1)"
 
           if [ -z "$HANDICAP" ]; then
-            echo "Could not parse handicap from profile page. Setting HANDICAP=N/A"
+            echo "Could not parse handicap from profile page; setting HANDICAP=N/A"
             HANDICAP="N/A"
           fi
+
           echo "HANDICAP=$HANDICAP" >> $GITHUB_ENV
           echo "Scraped handicap: $HANDICAP"
 
-      - name: Update README badge
+      - name: Prepare badge URL
+        run: |
+          if [ "${HANDICAP}" = "N/A" ]; then
+            BADGE_URL="https://img.shields.io/badge/Handicap-N%2FA-lightgrey?style=for-the-badge"
+          else
+            BADGE_URL="https://img.shields.io/badge/Handicap-${HANDICAP}-green?style=for-the-badge"
+          fi
+          echo "BADGE_URL=${BADGE_URL}" >> $GITHUB_ENV
+          echo "Badge URL: ${BADGE_URL}"
+
+      - name: Ensure badge exists or insert it
         run: |
           set -e
-          # Expect a badge like:
-          # !Handicap
-          #
-          # Replace the numeric value (or N/A) in README.
-          if [ "${HANDICAP}" = "N/A" ]; then
-            NEW_BADGE="https://img.shields.io/badge/Handicap-N%2FA-lightgrey?style=for-the-badge"
+          # If README already has a Handicap badge, replace the whole URL safely.
+          if grep -q 'img.shields.io/badge/Handicap-' README.md; then
+            echo "Found existing Handicap badge; updating URL..."
+            # Replace ANY existing Handicap badge URL with the new one
+            perl -0777 -pe "s|https://img.shields.io/badge/Handicap-[^\\)]*|${BADGE_URL}|g" -i README.md
           else
-            NEW_BADGE="https://img.shields.io/badge/Handicap-${HANDICAP}-green?style=for-the-badge"
+            echo "No Handicap badge found; inserting section at top..."
+            # Insert a section at top
+            awk -v badge="\\n## My Golf Handicap\\n!Handicap\\n" 'BEGIN{print badge} {print}' README.md > README.md.tmp && mv README.md.tmp README.md
           fi
 
-          # Replace the entire badge URL in README (safe replacement)
-          perl -0777 -pe "s|https://img.shields.io/badge/Handicap-[^\\)]*|${NEW_BADGE}|g" -i README.md
+          echo "----- README preview (first 40 lines) -----"
+          head -n 40 README.md || true
 
-          # Commit only if README changed
+      - name: Commit and push if README changed
+        run: |
+          set -e
           if ! git diff --quiet -- README.md; then
+            echo "README changed; committing..."
             git add README.md
             git config user.name "github-actions[bot]"
             git config user.email "github-actions[bot]@users.noreply.github.com"
+            # Rebase to avoid non-fast-forward push collisions
+            git pull --rebase || true
             git commit -m "Update handicap badge to ${HANDICAP}"
-            git push
+            git push || (echo "Direct push failed, likely due to branch protection." && exit 1)
           else
             echo "README unchanged; skipping commit."
           fi
